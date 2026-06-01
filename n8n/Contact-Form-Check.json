@@ -1,0 +1,283 @@
+{
+  "name": "Contact-Form-Check",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"target_domain\": \"example.com\"\n}"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1136,
+        544
+      ],
+      "id": "f6e9dcee-2d2b-4d74-aa4d-41af0c16f649",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gfkRZjnxbAfWOHDP",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://proxy.scrapeops.io/v1",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "YOUR_SCRAPEOPS_API_KEY"
+            },
+            {
+              "name": "url",
+              "value": "=https://{{ $json.output.website_link_domain }}/"
+            },
+            {
+              "name": "residential",
+              "value": "true"
+            },
+            {
+              "name": "render_js",
+              "value": "true"
+            },
+            {
+              "name": "premium",
+              "value": "level_2"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        352
+      ],
+      "id": "30af49f4-602c-4564-96e5-4cbee34d028f",
+      "name": "GET domain"
+    },
+    {
+      "parameters": {
+        "url": "https://proxy.scrapeops.io/v1",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "YOUR_SCRAPEOPS_API_KEY"
+            },
+            {
+              "name": "url",
+              "value": "=https://{{ $json.output.website_link_domain }}"
+            },
+            {
+              "name": "residential",
+              "value": "true"
+            },
+            {
+              "name": "render_js",
+              "value": "true"
+            },
+            {
+              "name": "premium",
+              "value": "level_2"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1408,
+        352
+      ],
+      "id": "2425db1c-0602-4165-9310-5d0fbb825ec3",
+      "name": "GET domain/contact"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        560
+      ],
+      "id": "44aaf251-dd13-4c10-b7c2-c0686cbbbdae",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gfkRZjnxbAfWOHDP",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "=From the message below, extract the website domain only. Message: {{ $json.target_domain }}\nExample: \"Please check if this is valid https://aura.slovenia.com/api/v1/get/123&id=14?auth:login\" should return just aura.slovenia.com. Do not forget to include subdomains.",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "website_link_domain",
+              "description": "Extracted domain."
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, you may omit the attribute's value."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        528,
+        352
+      ],
+      "id": "c6c40cd2-307c-4932-b819-248bd3f51fef",
+      "name": "LLM pripravi domeno"
+    },
+    {
+      "parameters": {
+        "text": "=HTML_SOURCE_CODE: {{ $json.data }}\nTARGET_DOMAIN: {{ $('When Executed by Another Workflow').item.json.target_domain }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "website_link_domain",
+              "description": "Extracted domain."
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "Role: You are a high-precision Data Extraction Parser specializing in HTML source code analysis. Your job is to parse the raw HTML source code of a webpage and locate the primary \"Contact Us\" or \"About Us\" URL from the navigation, header, footer, or body anchors.\n\nTask Instructions:\n\n1. Examine the provided `TARGET_DOMAIN` and the raw `HTML_SOURCE_CODE`.\n2. Scan the HTML anchor tags (`<a>` href attributes) to identify the single best URL meant for customer support, corporate identification, or contact inquiries. Prioritize localized variants for Slovenia/EU if present (e.g., paths containing `/kontakt`, `/o-nas`, `/contact`, `/about`, `/contact_us`, `/contact_us.html`).\n3. If multiple matching links exist in the source code, pick the highest-priority link based on this hierarchy:\n* Specific Contact Page (e.g., `/kontakt` or `/contact-us`)\n* General Legal/Imprint Info (e.g., `/imprint` or `/pravno-obvestilo`)\n* About Us Page (e.g., `/o-nas` or `/about`)\n\n\n4. Construct a fully qualified, absolute URL without any protocol prefix. If the URL or href contains https:// or http://, completely remove that prefix. If the href value in the HTML is a relative path, combine it with the TARGET_DOMAIN (e.g., if domain is shop.si and href is /kontakt, return shop.si/kontakt). If it is already an absolute URL, return it as-is.\n\nStrict Constraints:\n\n* CRITICAL: Do not include http:// or https:// in the final output. The URL must start directly with the domain name (e.g., example.com/contact, NOT https://example.com/contact).\n* Do not include social media links (Facebook, Instagram, LinkedIn, etc.) found in the code.\n* Do not include `mailto:` or `tel:` links.\n* Ignore Javascript-void links or placeholder hashes (e.g., `href=\"#\"`).\n* If no valid contact path can be found in the HTML source code, return an empty string for the URL value.\n* Your output must follow the precise response structure below with no additional conversational text or markdown code fences.\n\nInput Data:\n* TARGET_DOMAIN\n* HTML_SOURCE_CODE\n\nResponse Structure:\nwebsite_link_domain: [Insert the clean, absolute, fully resolved destination URL]"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1088,
+        352
+      ],
+      "id": "7ced8e59-a009-4fa2-a8cf-e4fa30dd375f",
+      "name": "LLM najdi kontakt in pripravi domeno"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "target_domain": "epace.si"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "LLM pripravi domeno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM najdi kontakt in pripravi domeno",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET domain": {
+      "main": [
+        [
+          {
+            "node": "LLM najdi kontakt in pripravi domeno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM pripravi domeno",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM pripravi domeno": {
+      "main": [
+        [
+          {
+            "node": "GET domain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM najdi kontakt in pripravi domeno": {
+      "main": [
+        [
+          {
+            "node": "GET domain/contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9ad66660-3841-4485-aaf1-fa2e12300de1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "921a89f78c2cc361c8d832803bee5b477515e0e45ea8fd135c47468ba4d4d2b6"
+  },
+  "id": "QnEoO5LmEA2y6uOg",
+  "tags": []
+}
