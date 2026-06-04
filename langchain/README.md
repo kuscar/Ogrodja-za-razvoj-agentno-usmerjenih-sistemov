@@ -4,6 +4,16 @@ To je agentno usmerjen sistem za generiranje CV-ja in motivacijskega pisma imple
 
 ## Namestitev
 
+### 0. Zaprosi za dostop do Prompt-Guard modela
+
+Model [`meta-llama/Prompt-Guard-86M`](https://huggingface.co/meta-llama/Prompt-Guard-86M) je zaščiten (gated). Za dostop:
+
+1. Ustvari račun na [huggingface.co](https://huggingface.co) (ali se prijavi).
+2. Odpri stran modela in klikni **Request access** ter sprejmi pogoje uporabe.
+3. Ko je dostop odobren, ustvari dostopni žeton: **Settings → Access Tokens → New token** (tip: `Read`).
+4. Žeton nastavi kot okoljsko spremenljivko `HF_TOKEN` v `.env` datoteki.
+
+
 ### 1. Ustvarite Supabase projekt
 Ustvarite projekt na [app.supabase.com](https://app.supabase.com) in si shranite URL ter service-role ključ.
 
