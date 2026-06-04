@@ -1,0 +1,15 @@
+# Minimal Supabase CLI config so `supabase db push` and friends pick up the
+# migrations in this folder.  The full reference lives at
+# https://supabase.com/docs/guides/cli/config.
+
+project_id = "cv-builder"
+
+[db]
+# Local shadow DB the CLI spins up to diff schema before pushing.
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.migrations]
+# Migrations live in supabase/migrations/ — same as the CLI default.
+schema_paths = []

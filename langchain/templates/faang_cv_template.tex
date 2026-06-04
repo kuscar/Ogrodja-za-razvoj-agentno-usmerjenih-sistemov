@@ -1,0 +1,59 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[margin=0.6in]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage[T1]{fontenc}
+
+\pagestyle{empty}
+\setlist[itemize]{leftmargin=*, label=$\bullet$, itemsep=1pt, topsep=2pt}
+\titleformat{\section}{\Large\bfseries\uppercase}{}{0pt}{}[\titlerule]
+\titlespacing*{\section}{0pt}{8pt}{4pt}
+
+\begin{document}
+
+\begin{center}
+    {\Huge\textbf{(((profile.full_name | tex_escape)))}}\\[2pt]
+    (((profile.email | tex_escape))) ((* if profile.phone *))\,\textbar\,(((profile.phone | tex_escape)))((* endif *))
+    ((* if profile.location *))\,\textbar\,(((profile.location | tex_escape)))((* endif *))
+\end{center}
+
+\section*{Education}
+((* for ed in profile.education *))
+\textbf{(((ed.degree | tex_escape)))((* if ed.field *)), (((ed.field | tex_escape)))((* endif *))} -- (((ed.institution | tex_escape))) \hfill (((ed.start_date | tex_escape))) -- (((ed.end_date | tex_escape or "Present")))
+((* endfor *))
+
+\section*{Skills}
+\textbf{Technical:} (((profile.hard_skills | map("tex_escape") | join(", "))))\\
+((* if profile.soft_skills *))\textbf{Soft Skills:} (((profile.soft_skills | map("tex_escape") | join(", "))))\\((* endif *))
+((* if profile.certifications *))\textbf{Certifications:} (((profile.certifications | map("tex_escape") | join(", "))))((* endif *))
+
+\section*{Experience}
+((* for exp in profile.experiences *))
+\textbf{(((exp.title | tex_escape))), (((exp.company | tex_escape)))} \hfill (((exp.start_date | tex_escape))) -- (((exp.end_date | tex_escape or "Present")))
+\begin{itemize}
+((* for b in exp.bullets *))
+    \item (((b | tex_escape)))
+((* endfor *))
+\end{itemize}
+((* endfor *))
+
+((* if profile.leadership *))
+\section*{Leadership}
+\begin{itemize}
+((* for item in profile.leadership *))
+    \item (((item | tex_escape)))
+((* endfor *))
+\end{itemize}
+((* endif *))
+
+((* if profile.extracurricular_activities *))
+\section*{Extra-Curricular Activities}
+\begin{itemize}
+((* for item in profile.extracurricular_activities *))
+    \item (((item | tex_escape)))
+((* endfor *))
+\end{itemize}
+((* endif *))
+
+\end{document}

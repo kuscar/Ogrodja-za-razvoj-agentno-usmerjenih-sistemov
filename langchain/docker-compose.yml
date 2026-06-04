@@ -1,0 +1,61 @@
+services:
+  api:
+    build: .
+    image: cv-builder/api:dev
+    ports: ["8000:8000"]
+    env_file: [.env]
+    environment:
+      SUPABASE_MCP_URL: http://supabase-mcp:8080
+      PROMPT_GUARD_URL: http://prompt-guard:8088
+    volumes:
+      - cv-uploads:/var/cv-uploads
+      - cv-artifacts:/var/cv-artifacts
+      - ./static:/app/static:ro
+    depends_on:
+      prompt-guard:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/livez', timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  supabase-mcp:
+    build: ./supabase-mcp
+    image: cv-builder/supabase-mcp:dev
+    environment:
+      SUPABASE_ACCESS_TOKEN: ${SUPABASE_ACCESS_TOKEN}
+    ports: ["8080:8080"]
+    restart: unless-stopped
+
+  prompt-guard:
+    build: ./prompt-guard
+    image: cv-builder/prompt-guard-2:latest
+    environment:
+      PROMPT_GUARD_MODEL: meta-llama/Llama-Prompt-Guard-2-86M
+      PROMPT_GUARD_DEVICE: cpu
+      PROMPT_GUARD_THRESH: "0.85"
+      HF_TOKEN: ${HF_TOKEN}
+    ports: ["8088:8088"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8088/healthz', timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s     
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prom-data:/prometheus
+    ports: ["9090:9090"]
+    restart: unless-stopped
+
+volumes:
+  cv-uploads:
+  cv-artifacts:
+  prom-data:

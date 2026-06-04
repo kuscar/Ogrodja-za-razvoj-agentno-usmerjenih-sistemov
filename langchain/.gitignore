@@ -1,0 +1,51 @@
+# Secrets / env -- NEVER commit
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Local artifacts
+*.log
+/var/
+prom-data/
+ollama/
+
+# Supabase CLI shadow DB / generated types
+supabase/.branches/
+supabase/.temp/
+
+# Docker
+*.pid
+
+# Jupyter
+.ipynb_checkpoints/

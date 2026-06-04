@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CV Builder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .spinner { animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .fade-in { animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-gray-900">
+
+<!-- ===== AUTH VIEW ===== -->
+<div id="view-auth" class="flex items-center justify-center min-h-screen p-4">
+  <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+    <div class="text-center mb-7">
+      <div class="inline-flex items-center gap-2 mb-3">
+        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-sm">CV</div>
+        <span class="text-xl font-bold text-gray-900">Builder</span>
+      </div>
+      <p class="text-sm text-gray-500">AI-powered CV &amp; cover letter generation</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex rounded-xl bg-gray-100 p-1 mb-5">
+      <button id="tab-signin" onclick="switchTab('signin')"
+        class="flex-1 py-1.5 rounded-lg text-sm font-medium transition-all bg-white shadow text-gray-900">
+        Sign In
+      </button>
+      <button id="tab-signup" onclick="switchTab('signup')"
+        class="flex-1 py-1.5 rounded-lg text-sm font-medium transition-all text-gray-500">
+        Sign Up
+      </button>
+    </div>
+
+    <div id="auth-alert" class="hidden mb-4 rounded-xl px-4 py-3 text-sm"></div>
+
+    <div class="space-y-3">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Email</label>
+        <input id="auth-email" type="email" autocomplete="email"
+          class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          placeholder="you@example.com">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Password</label>
+        <input id="auth-password" type="password" autocomplete="current-password"
+          class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          placeholder="••••••••" onkeydown="if(event.key==='Enter') submitAuth()">
+      </div>
+      <button onclick="submitAuth()" id="auth-btn"
+        class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-2.5 rounded-xl transition text-sm mt-1 flex items-center justify-center gap-2">
+        <span id="auth-btn-label">Sign In</span>
+        <span id="auth-btn-spinner" class="hidden spinner text-base">⟳</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP VIEW ===== -->
+<div id="view-app" class="hidden">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 px-5 py-3.5 flex items-center justify-between sticky top-0 z-20">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs">CV</div>
+      <span class="font-semibold text-gray-800">CV Builder</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="header-email" class="text-xs text-gray-400 hidden sm:block"></span>
+      <button onclick="signOut()"
+        class="text-xs font-medium text-gray-500 hover:text-red-500 transition border border-gray-200 hover:border-red-200 rounded-lg px-3 py-1.5">
+        Sign out
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-2xl mx-auto px-4 py-8 space-y-4">
+
+    <!-- Global error banner -->
+    <div id="app-error" class="hidden bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 fade-in"></div>
+
+    <!-- Step 1 -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-50 flex items-center gap-3">
+        <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">1</div>
+        <div>
+          <h2 class="font-semibold text-gray-900 text-sm">Upload CV</h2>
+          <p class="text-xs text-gray-400 mt-0.5">PDF or Word — the agent parses and stores your profile</p>
+        </div>
+      </div>
+      <div class="px-5 py-5 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+            CV file <span class="text-red-400 normal-case font-normal">required</span>
+          </label>
+          <label class="flex items-center gap-3 border-2 border-dashed border-gray-200 hover:border-blue-400 rounded-xl px-4 py-3 cursor-pointer transition group">
+            <span class="text-2xl">📄</span>
+            <div class="flex-1 min-w-0">
+              <span id="file-label" class="text-sm text-gray-400 group-hover:text-blue-500 transition">Click to choose file…</span>
+            </div>
+            <input id="cv-file" type="file" accept=".pdf,.doc,.docx" class="hidden" onchange="updateFileLabel()">
+          </label>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+            Extra info <span class="font-normal normal-case text-gray-400">optional</span>
+          </label>
+          <textarea id="enrichment" rows="2"
+            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition"
+            placeholder="Career goals, extra projects, preferred titles — anything not on the CV"></textarea>
+        </div>
+        <button onclick="doUpload()" id="btn-upload"
+          class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
+          Upload &amp; Analyse
+          <span id="sp-upload" class="hidden spinner">⟳</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-50 flex items-center gap-3">
+        <div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">2</div>
+        <div>
+          <h2 class="font-semibold text-gray-900 text-sm">Generate Base CV</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Polished, general-purpose CV from your stored profile</p>
+        </div>
+      </div>
+      <div class="px-5 py-5">
+        <button onclick="doBaseCV()" id="btn-base"
+          class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
+          Generate Base CV
+          <span id="sp-base" class="hidden spinner">⟳</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-50 flex items-center gap-3">
+        <div class="w-7 h-7 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-xs">3</div>
+        <div>
+          <h2 class="font-semibold text-gray-900 text-sm">Targeted CV + Cover Letter</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Tailored for a specific job — ATS-optimised with a cover letter</p>
+        </div>
+      </div>
+      <div class="px-5 py-5 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+            Job description <span class="text-red-400 normal-case font-normal">required</span>
+          </label>
+          <textarea id="job-desc" rows="7"
+            class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y transition"
+            placeholder="Paste the full job posting here…"></textarea>
+        </div>
+        <button onclick="doTargetedCV()" id="btn-targeted"
+          class="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
+          Generate Targeted CV
+          <span id="sp-targeted" class="hidden spinner">⟳</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div id="output-panel" class="hidden bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden fade-in">
+      <div class="px-5 py-4 border-b border-gray-50">
+        <h2 class="font-semibold text-gray-900 text-sm">Result</h2>
+      </div>
+      <div id="output-body" class="px-5 py-5 space-y-4"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Auth state ────────────────────────────────────────────────────────────────
+const SESSION_KEY = 'cvb_session';
+let _token = null;
+let _email = null;
+let _activeTab = 'signin';
+
+function saveSession(data) {
+  _token = data.access_token;
+  _email = data.email;
+  const expiresAt = Date.now() + (data.expires_in || 3600) * 1000;
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ token: _token, email: _email, expiresAt })); } catch {}
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (Date.now() > s.expiresAt) { localStorage.removeItem(SESSION_KEY); return false; }
+    _token = s.token;
+    _email = s.email;
+    return true;
+  } catch { return false; }
+}
+
+function clearSession() {
+  _token = null; _email = null;
+  try { localStorage.removeItem(SESSION_KEY); } catch {}
+}
+
+// ── View routing ──────────────────────────────────────────────────────────────
+function showAuth() {
+  document.getElementById('view-auth').classList.remove('hidden');
+  document.getElementById('view-app').classList.add('hidden');
+}
+
+function showApp() {
+  document.getElementById('view-auth').classList.add('hidden');
+  document.getElementById('view-app').classList.remove('hidden');
+  document.getElementById('header-email').textContent = _email || '';
+}
+
+function switchTab(tab) {
+  _activeTab = tab;
+  const isSI = tab === 'signin';
+  document.getElementById('tab-signin').className = `flex-1 py-1.5 rounded-lg text-sm font-medium transition-all ${isSI ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`;
+  document.getElementById('tab-signup').className = `flex-1 py-1.5 rounded-lg text-sm font-medium transition-all ${!isSI ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`;
+  document.getElementById('auth-btn-label').textContent = isSI ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-password').autocomplete = isSI ? 'current-password' : 'new-password';
+  setAuthAlert('', '');
+}
+
+function setAuthAlert(msg, type) {
+  const el = document.getElementById('auth-alert');
+  if (!msg) { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border-red-200', 'bg-blue-50', 'text-blue-700', 'border-blue-200');
+  if (type === 'error') el.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
+  else el.classList.add('bg-blue-50', 'text-blue-700', 'border', 'border-blue-200');
+  el.textContent = msg;
+}
+
+// ── Auth actions ──────────────────────────────────────────────────────────────
+async function submitAuth() {
+  setAuthAlert('', '');
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email) { setAuthAlert('Please enter your email.', 'error'); return; }
+  if (!password) { setAuthAlert('Please enter your password.', 'error'); return; }
+  if (_activeTab === 'signup' && password.length < 8) {
+    setAuthAlert('Password must be at least 8 characters.', 'error'); return;
+  }
+
+  const btn = document.getElementById('auth-btn');
+  btn.disabled = true;
+  document.getElementById('auth-btn-spinner').classList.remove('hidden');
+  document.getElementById('auth-btn-label').textContent = _activeTab === 'signin' ? 'Signing in…' : 'Creating account…';
+
+  const route = _activeTab === 'signin' ? '/auth/signin' : '/auth/signup';
+  const fd = new FormData();
+  fd.append('email', email);
+  fd.append('password', password);
+
+  try {
+    const resp = await fetch(route, { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'Authentication failed');
+    saveSession(data);
+    showApp();
+  } catch (e) {
+    setAuthAlert(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('auth-btn-spinner').classList.add('hidden');
+    document.getElementById('auth-btn-label').textContent = _activeTab === 'signin' ? 'Sign In' : 'Create Account';
+  }
+}
+
+function signOut() {
+  clearSession();
+  document.getElementById('output-panel').classList.add('hidden');
+  showAuth();
+}
+
+// ── Authenticated API calls ───────────────────────────────────────────────────
+async function apiCall(path, init = {}) {
+  if (!_token) { showAuth(); throw new Error('Not signed in'); }
+  const resp = await fetch(path, {
+    ...init,
+    headers: { Authorization: `Bearer ${_token}`, ...(init.headers || {}) },
+  });
+  if (resp.status === 401) { clearSession(); showAuth(); throw new Error('Session expired — please sign in again.'); }
+  // Guard against non-JSON responses (e.g. server crash returning HTML)
+  const ct = resp.headers.get('content-type') || '';
+  let data;
+  if (ct.includes('application/json')) {
+    data = await resp.json();
+  } else {
+    const txt = await resp.text();
+    data = { detail: txt || `Server error ${resp.status}` };
+  }
+  if (!resp.ok) throw new Error(data.detail || `Server error ${resp.status}`);
+  return data;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setLoading(btnId, spId, on) {
+  const btn = document.getElementById(btnId);
+  const sp = document.getElementById(spId);
+  if (btn) btn.disabled = on;
+  if (sp) sp.classList.toggle('hidden', !on);
+}
+
+function setAppError(msg) {
+  const el = document.getElementById('app-error');
+  if (!msg) { el.classList.add('hidden'); return; }
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function updateFileLabel() {
+  const f = document.getElementById('cv-file').files[0];
+  document.getElementById('file-label').textContent = f ? f.name : 'Click to choose file…';
+}
+
+// ── Step actions ──────────────────────────────────────────────────────────────
+async function doUpload() {
+  const file = document.getElementById('cv-file').files[0];
+  if (!file) { setAppError('Please select a CV file.'); return; }
+  setAppError('');
+  setLoading('btn-upload', 'sp-upload', true);
+  try {
+    const fd = new FormData();
+    fd.append('cv', file);
+    const enrichment = document.getElementById('enrichment').value.trim();
+    if (enrichment) fd.append('enrichment', enrichment);
+    const state = await apiCall('/onboarding', { method: 'POST', body: fd });
+    renderOutput(state);
+  } catch (e) { setAppError(e.message); }
+  finally { setLoading('btn-upload', 'sp-upload', false); }
+}
+
+async function doBaseCV() {
+  setAppError('');
+  setLoading('btn-base', 'sp-base', true);
+  try {
+    const state = await apiCall('/cv/base', { method: 'POST' });
+    if (state.compiled_pdf_path) {
+      const filename = state.compiled_pdf_path.split('/').pop();
+      const resp = await fetch(`/cv/download/${encodeURIComponent(filename)}`, {
+        headers: { Authorization: `Bearer ${_token}` },
+      });
+      if (!resp.ok) throw new Error(`Download failed (${resp.status})`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } else {
+      // No PDF produced — show errors/trace so the user knows what went wrong
+      renderOutput(state);
+    }
+  } catch (e) { setAppError(e.message); }
+  finally { setLoading('btn-base', 'sp-base', false); }
+}
+
+async function doTargetedCV() {
+  const jd = document.getElementById('job-desc').value.trim();
+  if (!jd) { setAppError('Please paste a job description.'); return; }
+  setAppError('');
+  setLoading('btn-targeted', 'sp-targeted', true);
+  try {
+    const fd = new FormData();
+    fd.append('job_description', jd);
+    const state = await apiCall('/cv/targeted', { method: 'POST', body: fd });
+    if (state.compiled_pdf_path || state.cover_letter) {
+      // Auto-download CV PDF
+      if (state.compiled_pdf_path) {
+        const filename = state.compiled_pdf_path.split('/').pop();
+        const resp = await fetch(`/cv/download/${encodeURIComponent(filename)}`, {
+          headers: { Authorization: `Bearer ${_token}` },
+        });
+        if (!resp.ok) throw new Error(`CV download failed (${resp.status})`);
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }
+      // Auto-download cover letter as .txt
+      if (state.cover_letter) {
+        const blob = new Blob([state.cover_letter], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'cover_letter.txt'; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }
+    } else {
+      // No output — show errors/trace
+      renderOutput(state);
+    }
+  } catch (e) { setAppError(e.message); }
+  finally { setLoading('btn-targeted', 'sp-targeted', false); }
+}
+
+// ── Output rendering ──────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function collapsible(label, innerHtml, open = false) {
+  const d = document.createElement('div');
+  d.className = 'border border-gray-200 rounded-xl overflow-hidden';
+  d.innerHTML = `
+    <button class="w-full flex justify-between items-center px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 transition text-left">
+      <span>${esc(label)}</span>
+      <span class="chevron text-gray-400 text-xs transition-transform">${open ? '▲' : '▼'}</span>
+    </button>
+    <div class="content${open ? '' : ' hidden'}">${innerHtml}</div>`;
+  d.querySelector('button').onclick = () => {
+    const body = d.querySelector('.content');
+    const chev = d.querySelector('.chevron');
+    const nowOpen = body.classList.toggle('hidden');
+    chev.textContent = nowOpen ? '▼' : '▲';
+  };
+  return d;
+}
+
+function renderOutput(state) {
+  const panel = document.getElementById('output-panel');
+  const body = document.getElementById('output-body');
+  panel.classList.remove('hidden');
+  body.innerHTML = '';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Guardrail block
+  if (state.guardrail_verdict === 'block') {
+    body.innerHTML = `<div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+      <p class="font-semibold text-amber-800 text-sm">Input blocked by guardrail</p>
+      <p class="text-xs text-amber-700 mt-1">${esc(state.guardrail_reason || 'Content was flagged as potentially harmful.')}</p>
+    </div>`;
+    return;
+  }
+
+  // Errors
+  if (state.errors?.length) {
+    const div = document.createElement('div');
+    div.className = 'bg-red-50 border border-red-200 rounded-xl px-4 py-3';
+    div.innerHTML = `<p class="font-semibold text-red-700 text-sm mb-1">Errors (${state.errors.length})</p>
+      <ul class="list-disc list-inside text-xs text-red-600 space-y-0.5">
+        ${state.errors.map(e => `<li>${esc(e)}</li>`).join('')}
+      </ul>`;
+    body.appendChild(div);
+  }
+
+  // Parsed profile card
+  if (state.structured_profile) {
+    const p = state.structured_profile;
+    const div = document.createElement('div');
+    div.className = 'bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 space-y-1';
+    let html = `<p class="font-semibold text-emerald-800 text-sm">Profile parsed ✓</p>`;
+    if (p.full_name) html += `<p class="text-sm text-emerald-900 font-medium">${esc(p.full_name)}</p>`;
+    const meta = [p.email, p.phone, p.location].filter(Boolean).map(esc).join(' · ');
+    if (meta) html += `<p class="text-xs text-emerald-700">${meta}</p>`;
+    if (p.summary) html += `<p class="text-xs text-emerald-700 mt-1">${esc(p.summary)}</p>`;
+    const skills = [...(p.hard_skills || []), ...(p.soft_skills || [])];
+    if (skills.length) {
+      html += `<div class="flex flex-wrap gap-1 mt-2">
+        ${skills.slice(0, 20).map(s => `<span class="inline-block bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full">${esc(s)}</span>`).join('')}
+        ${skills.length > 20 ? `<span class="text-xs text-emerald-600">+${skills.length - 20} more</span>` : ''}
+      </div>`;
+    }
+    if (p.experiences?.length) {
+      html += `<p class="text-xs text-emerald-600 mt-1">${p.experiences.length} role(s): ${p.experiences.map(x => esc(x.company)).join(', ')}</p>`;
+    }
+    div.innerHTML = html;
+    body.appendChild(div);
+  }
+
+  // Cover letter
+  if (state.cover_letter) {
+    body.appendChild(collapsible(
+      'Cover letter',
+      `<div class="px-4 py-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">${esc(state.cover_letter)}</div>`,
+      true
+    ));
+  }
+
+  // LaTeX source
+  if (state.latex_source) {
+    body.appendChild(collapsible(
+      'LaTeX source',
+      `<pre class="bg-gray-900 text-green-400 text-xs p-4 overflow-auto max-h-80">${esc(state.latex_source)}</pre>`
+    ));
+  }
+
+  // Agent trace
+  if (state.messages?.length) {
+    const msgs = state.messages.map(m => {
+      const type = (m.type || '').toLowerCase();
+      const isAI = type.includes('ai') || type === 'assistant';
+      const isTool = type.includes('tool');
+      const bgCls = isAI ? 'bg-blue-50 text-blue-900' : isTool ? 'bg-yellow-50 text-yellow-900' : 'bg-gray-100 text-gray-700';
+      const label = isAI ? 'Agent' : isTool ? 'Tool' : 'System';
+      const text = typeof m.content === 'string' ? m.content : JSON.stringify(m.content, null, 2);
+      return `<div class="rounded-lg px-3 py-2 text-xs ${bgCls}">
+        <span class="font-semibold">${label}:</span>
+        <span class="whitespace-pre-wrap"> ${esc(text)}</span>
+      </div>`;
+    }).join('');
+    body.appendChild(collapsible(
+      `Agent trace (${state.messages.length} message${state.messages.length > 1 ? 's' : ''})`,
+      `<div class="p-3 space-y-2 max-h-80 overflow-y-auto">${msgs}</div>`
+    ));
+  }
+
+  // Nothing meaningful
+  if (!state.structured_profile && !state.latex_source && !state.cover_letter &&
+      !state.errors?.length && state.guardrail_verdict !== 'block') {
+    body.innerHTML += `<p class="text-xs text-gray-400 italic">No content produced — expand the agent trace above for details.</p>`;
+  }
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+if (loadSession()) showApp();
+else showAuth();
+</script>
+</body>
+</html>
